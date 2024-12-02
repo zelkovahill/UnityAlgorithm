@@ -664,7 +664,7 @@ MonoBehaviour:
   nodeSpacing: 2
   animationSpeed: 1
   lessonText: {fileID: 799298138}
-  currentLesson: 0
+  currentLesson: 4
 --- !u!1 &2100500270
 GameObject:
   m_ObjectHideFlags: 0

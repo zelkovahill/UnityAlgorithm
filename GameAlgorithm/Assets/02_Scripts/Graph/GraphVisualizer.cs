@@ -45,7 +45,7 @@ public class GraphVisualizer : MonoBehaviour
     {
         // 함수 초기화
         InitializeGraph();
-        StartLesson(2);
+        StartLesson(currentLesson);
     }
 
     private void Update()
@@ -60,7 +60,7 @@ public class GraphVisualizer : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            if (currentLesson > 1)
+            if (/*isLessonComplete &&*/ currentLesson > 1)
             {
                 StopCurrentLessonIfRunning();
                 StartLesson(currentLesson - 1);
@@ -304,7 +304,90 @@ public class GraphVisualizer : MonoBehaviour
     /// <returns></returns>
     private IEnumerator Lesson3_BFS()
     {
+        Vector3[] nodePositions = new Vector3[]
+        {
+            new Vector3(0,0,0),      // 노드 0
+            new Vector3(2,0,2),      // 노드 1
+            new Vector3(-2,0,2),     // 노드 2    
+            new Vector3(2,0,-2),     // 노드 3
+            new Vector3(-2,0,-2),    // 노드 4
+            new Vector3(0,0,-4),     // 노드 5
+        };
+
+
+        // 노드 순차적 생성
+        for (int i = 0; i < nodePositions.Length; i++)
+        {
+            CreateNode(i, nodePositions[i]);
+            yield return new WaitForEndOfFrame();
+        }
+
+        int[,] edges = new int[,]
+        {
+            {0,1}, {2,4},
+            {0,2}, {3,4},
+            {1,3}, {3,5},
+            {2,3}, {4,5},
+         };
+
+        // 엣지 순차적 생성
+        for (int i = 0; i < edges.GetLength(0); i++)
+        {
+            CreateEdgeBetweenNodes(edges[i, 0], edges[i, 1]);
+            yield return new WaitForEndOfFrame();
+        }
+
+        // 인접 리스트 설정
+        adjList = new List<int>[nodePositions.Length];
+        for (int i = 0; i < nodePositions.Length; i++)
+        {
+            adjList[i] = new List<int>();
+        }
+
+        // 양방향 엣지 추가
+        for (int i = 0; i < edges.GetLength(0); i++)
+        {
+            int from = edges[i, 0];
+            int to = edges[i, 1];
+            adjList[from].Add(to);
+            adjList[to].Add(from);
+        }
+
         yield return null;
+
+        // BFS
+        bool[] visited = new bool[nodePositions.Length];
+        Queue<int> queue = new Queue<int>();
+
+        // 시작 노드
+        queue.Enqueue(0);
+        visited[0] = true;
+
+        while (queue.Count > 0)
+        {
+            int current = queue.Dequeue();
+
+            // 현재 노드 처리
+            nodes[current].GetComponent<MeshRenderer>().material = currentMaterial;
+            yield return new WaitForSeconds(0.5f);
+            nodes[current].GetComponent<MeshRenderer>().material = visitedMaterial;
+
+            // 인접 노드들을 큐에 추가
+            foreach (int neighbor in adjList[current])
+            {
+                // 방문하지 않은 노드만 큐에 추가
+                if (!visited[neighbor])
+                {
+                    visited[neighbor] = true;
+                    queue.Enqueue(neighbor);
+                    nodes[neighbor].GetComponent<MeshRenderer>().material.color = Color.yellow;   // 큐에 추가된 노드는 노란색 표시
+                }
+            }
+
+            yield return new WaitForEndOfFrame();
+        }
+
+        isLessonComplete = true;
     }
 
     /// <summary>
@@ -313,7 +396,151 @@ public class GraphVisualizer : MonoBehaviour
     /// <returns></returns>
     private IEnumerator Lesson4_Dijkstra()
     {
+
+        Vector3[] nodePositions = new Vector3[]
+        {
+            new Vector3(0,0,0),      // 노드 0
+            new Vector3(2,0,2),      // 노드 1
+            new Vector3(-2,0,2),     // 노드 2    
+            new Vector3(2,0,-2),     // 노드 3
+            new Vector3(-2,0,-2),    // 노드 4
+            new Vector3(0,0,-4),     // 노드 5
+        };
+
+        // 노드 순차적 생성
+        for (int i = 0; i < nodePositions.Length; i++)
+        {
+            CreateNode(i, nodePositions[i]);
+            yield return new WaitForEndOfFrame();
+        }
+
+        int[,] edges = new int[,]
+        {
+            {0,1}, {2,4},
+            {0,2}, {3,4},
+            {1,3}, {3,5},
+            {2,3}, {4,5},
+         };
+
+        // 엣지 순차적 생성
+        for (int i = 0; i < edges.GetLength(0); i++)
+        {
+            CreateEdgeBetweenNodes(edges[i, 0], edges[i, 1]);
+            yield return new WaitForEndOfFrame();
+        }
+
+        // 다익스트라 알고리즘 실행
+        int startNode = 0;
+        int nodeCount = nodePositions.Length;
+        float[] distances = new float[nodeCount];
+        bool[] visited = new bool[nodeCount];
+        int[] previous = new int[nodeCount];
+
+        // 초기화
+        for (int i = 0; i < nodeCount; i++)
+        {
+            distances[i] = float.MaxValue;
+            previous[i] = -1;
+        }
+
+        distances[startNode] = 0;
+
+        // 메인 알고리즘
+        for (int i = 0; i < nodeCount; i++)
+        {
+            // 최소 거리를 가진 미방문 노드 찾기
+            float minDistance = float.MaxValue;
+            int currentNode = -1;
+
+            for (int j = 0; j < nodeCount; j++)
+            {
+                if (!visited[j] && distances[j] < minDistance)
+                {
+                    minDistance = distances[j];
+                    currentNode = j;
+                }
+            }
+
+            if (currentNode == -1)
+            {
+                break;
+            }
+
+            // 현재 노드 처리
+            visited[currentNode] = true;
+            nodes[currentNode].GetComponent<MeshRenderer>().material = currentMaterial;
+            yield return new WaitForSeconds(1f / animationSpeed);
+            nodes[currentNode].GetComponent<MeshRenderer>().material = visitedMaterial;
+
+
+            // 이웃 노드들의 거리 업데이트
+            for (int j = 0; j < nodeCount; j++)
+            {
+                if (IsConnected(currentNode, j))
+                {
+                    float weight = Vector3.Distance(nodes[currentNode].transform.position, nodes[j].transform.position);
+                    float newDistance = distances[currentNode] + weight;
+
+                    if (newDistance < distances[j])
+                    {
+                        distances[j] = newDistance;
+                        previous[j] = currentNode;
+
+                        // 거리가 업데이트된 노드는 파란색으로 표시
+                        if (visited[j])
+                        {
+                            nodes[j].GetComponent<MeshRenderer>().material.color = Color.blue;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 최단 경로 시각화 (도착점부터 역추적)
+        int current = nodeCount - 1; // 도착점
+
+        while (current != -1 && current != startNode)
+        {
+            nodes[current].GetComponent<MeshRenderer>().material.color = Color.yellow;
+            current = previous[current];
+            yield return new WaitForSeconds(0.3f);
+        }
+
+        if (current == startNode)
+        {
+            nodes[startNode].GetComponent<MeshRenderer>().material.color = Color.yellow;
+        }
+
         yield return null;
+        isLessonComplete = true;
+    }
+
+
+    private bool IsConnected(int node1, int node2)
+    {
+        // 인접 리스트 사용
+        if (adjList != null && adjList[node1] != null)
+        {
+            return adjList[node1].Contains(node2);
+        }
+
+        // 엣지 리스트로 연결 확인
+        foreach (GameObject edge in edges)
+        {
+            LineRenderer line = edge.GetComponent<LineRenderer>();
+            Vector3 start = line.GetPosition(0);
+            Vector3 end = line.GetPosition(1);
+
+            if ((Vector3.Distance(start, nodes[node1].transform.position) < 0.1f &&
+     Vector3.Distance(end, nodes[node2].transform.position) < 0.1f) ||
+     (Vector3.Distance(start, nodes[node2].transform.position) < 0.1f &&
+     Vector3.Distance(end, nodes[node1].transform.position) < 0.1f))
+            {
+                return true;
+            }
+
+        }
+        return false;
     }
 
     /// <summary>
